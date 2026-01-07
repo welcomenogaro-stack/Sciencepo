@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Galerie</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9; 
+      text-align: center;
+      margin: 20px;
+      color: #333;
+    }
+
+    h1 {
+      margin-bottom: 40px;
+      color: #333;
+    }
+
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    /* Miniatures plus grandes et crop centré */
+    .gallery img {
+      width: 300px;         /* largeur de la miniature */
+      height: 400px;        /* hauteur de la miniature */
+      object-fit: cover;    /* crop centré */
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s;
+    }
+
+    .gallery img:hover {
+      transform: scale(1.05);
+    }
+
+    /* Overlay / lightbox */
+    #overlay {
+      position: fixed;
+      display: none;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #overlay img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+    }
+
+    /* Flèches navigation */
+    .arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 50px;
+      color: white;
+      cursor: pointer;
+      padding: 10px;
+      z-index: 1001;
+      user-select: none;
+    }
+
+    #prev { left: 20px; }
+    #next { right: 20px; }
+
+    .arrow:hover {
+      color: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <h1>Exemple de cartes pour Les Presses de Sciences Po</h1>
+  <div class="gallery" id="gallery"></div>
+
+  <div id="overlay">
+    <div id="prev" class="arrow">&#10094;</div>
+    <img src="" alt="">
+    <div id="next" class="arrow">&#10095;</div>
+  </div>
+
+  <script>
+    // CONFIGURATION : ton utilisateur GitHub et le dépôt
+    const owner = "welcomenogaro-stack"; // ton nom GitHub
+    const repo = "Sciencepo";                // nom du dépôt
+    const folder = "images";              // dossier contenant tes images
+
+    const gallery = document.getElementById('gallery');
+    const overlay = document.getElementById('overlay');
+    const overlayImg = overlay.querySelector('img');
+    const prev = document.getElementById('prev');
+    const next = document.getElementById('next');
+
+    let images = [];
+    let currentIndex = 0;
+
+    // Récupère automatiquement toutes les images dans le dossier 'images/'
+    fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${folder}`)
+      .then(res => res.json())
+      .then(data => {
+        images = data
+          .filter(f => f.type === "file" && /\.(png|jpg|jpeg|gif)$/i.test(f.name))
+          .map(f => f.download_url);
+
+        images.forEach((src, i) => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = `Image ${i+1}`;
+          img.addEventListener('click', () => showOverlay(i));
+          gallery.appendChild(img);
+        });
+      })
+      .catch(err => console.error("Erreur API GitHub :", err));
+
+    // Lightbox / overlay
+    function showOverlay(index) {
+      currentIndex = index;
+      overlayImg.src = images[index];
+      overlay.style.display = 'flex';
+    }
+
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.style.display = 'none'; });
+    prev.addEventListener('click', e => { e.stopPropagation(); currentIndex = (currentIndex-1+images.length)%images.length; overlayImg.src = images[currentIndex]; });
+    next.addEventListener('click', e => { e.stopPropagation(); currentIndex = (currentIndex+1)%images.length; overlayImg.src = images[currentIndex]; });
+
+    // navigation au clavier
+    document.addEventListener('keydown', e => {
+      if (overlay.style.display === 'flex') {
+        if(e.key==='ArrowLeft') prev.click();
+        if(e.key==='ArrowRight') next.click();
+        if(e.key==='Escape') overlay.style.display='none';
+      }
+    });
+  </script>
+</body>
+</html>
